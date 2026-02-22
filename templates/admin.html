@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMS Admin Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root { --sidebar-width: 260px; }
+        body { background-color: #f8f9fa; font-family: 'Inter', sans-serif; }
+        #sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; background: #1a1d20; z-index: 1000; transition: all 0.3s; }
+        #content { margin-left: var(--sidebar-width); padding: 30px; min-height: 100vh; }
+        .nav-link { color: #a0a0a0; cursor: pointer; padding: 12px 20px; border-radius: 8px; margin: 5px 15px; transition: 0.2s; }
+        .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .nav-link.active { background: #0d6efd; color: #fff; font-weight: 500; }
+        .admin-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .admin-section.active { display: block; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="py-4 px-4 text-white">
+        <h4 class="fw-bold"><i class="bi bi-shield-check me-2"></i>RMS Panel</h4>
+    </div>
+    <ul class="nav flex-column mt-3">
+        <li class="nav-item"><a class="nav-link active" onclick="showSection('dashboard', this)"><i class="bi bi-grid-1x2 me-2"></i> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showSection('products', this)"><i class="bi bi-box-seam me-2"></i> Products</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showSection('orders', this)"><i class="bi bi-cart3 me-2"></i> Orders</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showSection('users', this)"><i class="bi bi-people me-2"></i> Users</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showSection('invoices', this)"><i class="bi bi-receipt me-2"></i> Invoices</a></li>
+        <li class="nav-item">
+            <a class="nav-link" onclick="showSection('qr_codes', this); loadQRCodes();">
+                <i class="bi bi-qr-code me-2"></i> QR Tables
+            </a>
+        </li>
+            
+    
+    </ul>
+</div>
+
+<div id="status-msg" class="alert alert-success d-none" role="alert">
+    Order marked as completed!
+</div>
+
+<div id="content">
+    {% include 'admin_parts/dashboard.html' %}
+    {% include 'admin_parts/products.html' %}
+    {% include 'admin_parts/orders.html' %}
+    {% include 'admin_parts/users.html' %}
+    {% include 'admin_parts/invoices.html' %}
+    {% include 'admin_parts/qr_codes.html' %}
+    {% include 'admin_parts/modals.html' %}
+</div>
+
+
+
+<!-- <div id="invoicePrintArea" style="display: none;">
+    <div style="width: 80mm; padding: 5mm; font-family: 'Courier New', Courier, monospace; color: black; background: white;">
+        <div style="text-align: center;">
+            <h2 style="margin: 0;">SMART MENU</h2>
+            <p style="font-size: 12px;">123 Restaurant St, City<br>Tel: +1 234 567 890</p>
+            <hr style="border-top: 1px dashed #000;">
+        </div>
+        <p style="font-size: 12px;">
+            Date: <span id="invDate"></span><br>
+            Table: <span id="invTable"></span><br>
+            User: <span id="invUser"></span>
+        </p>
+        <hr style="border-top: 1px dashed #000;">
+        <table style="width: 100%; font-size: 12px;">
+            <thead>
+                <tr>
+                    <th align="left">Item</th>
+                    <th align="center">Qty</th>
+                    <th align="right">Price</th>
+                </tr>
+            </thead>
+            <tbody id="invItems"></tbody>
+        </table>
+        <hr style="border-top: 1px dashed #000;">
+        <div style="text-align: right; font-weight: bold; font-size: 14px;">
+            TOTAL: <span id="invTotal"></span>
+        </div>
+        <div style="text-align: center; margin-top: 20px; font-size: 10px;">
+            THANK YOU FOR DINING WITH US!
+        </div>
+    </div>
+</div> -->
+<!-- <div id="invoicePrintArea" style="display: none;">
+    <div style="width: 80mm; padding: 10px; font-family: monospace;">
+        <h3 style="text-align: center;">RECEIPT</h3>
+        <p>Date: <span id="invDate"></span></p>
+        <p>Table: <span id="invTable"></span> | User: <span id="invUser"></span></p>
+        <hr>
+        <table style="width: 100%;">
+            <tbody id="invItems"></tbody>
+        </table>
+        <hr>
+        <h4 style="text-align: right;">Total: <span id="invTotal"></span></h4>
+    </div>
+</div> -->
+
+<div id="invoicePrintArea" style="display: none;">
+    <div style="padding: 20px;">
+        <h3>RECEIPT</h3>
+        <p>Date: <span id="invDate"></span></p>
+        <p>Table: <span id="invTable"></span></p>
+        <p>User: <span id="invUser"></span></p>
+        <hr>
+        <table style="width: 100%;"><tbody id="invItems"></tbody></table>
+        <hr>
+        <h4>Total: <span id="invTotal"></span></h4>
+    </div>
+</div>
+
+<div class="card h-100 shadow-sm border-0">
+    <div class="card-body">
+        <h6 class="text-muted mb-2">Total Revenue</h6>
+        <h3 id="total-revenue" class="mb-0 text-dark">$0.00</h3> </div>
+</div>
+
+<div class="card h-100 shadow-sm border-0">
+    <div class="card-body">
+        <h6 class="text-muted mb-2">Total Orders</h6>
+        <h3 id="total-orders" class="mb-0 text-dark">0</h3> </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let manualCart = [];
+
+    // --- Navigation Logic ---
+    function showSection(sectionId, element) {
+    // 1. Save the current section ID to the browser's memory
+    localStorage.setItem('activeAdminSection', sectionId);
+
+    document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(sectionId);
+    if(target) target.classList.add('active');
+    
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    
+    // Handle the sidebar highlight
+    if (element) {
+        element.classList.add('active');
+    } else {
+        // If no element passed (on reload), find the link by text or icon
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.getAttribute('onclick').includes(`'${sectionId}'`)) {
+                link.classList.add('active');
+            }
+        });
+    }
+
+    // Trigger data loads
+    if(sectionId === 'dashboard') loadAnalytics();
+    if(sectionId === 'products') loadProducts();
+    if(sectionId === 'orders') loadLiveOrders();
+    if(sectionId === 'invoices') loadTransactions();
+    if(sectionId === 'users') loadUsers();
+    if(sectionId === 'qr_codes') loadQRCodes();
+}
+
+    // --- 1. Dashboard Logic ---
+    async function loadAnalytics() {
+        const res = await fetch('/api/analytics');
+        const data = await res.json();
+        document.getElementById('dash-rev').innerText = `$${data.metrics.revenue_generated.toFixed(2)}`;
+        document.getElementById('dash-orders').innerText = data.metrics.orders_created;
+        document.getElementById('dash-profit').innerText = `$${data.metrics.profits_made.toFixed(2)}`;
+    }
+
+    // --- 2. Product Logic ---
+    async function loadProducts() {
+        const tbody = document.getElementById('product-table-body');
+        if (!tbody) return;
+        try {
+            const res = await fetch('/api/products');
+            const data = await res.json();
+            tbody.innerHTML = data.map(p => `
+                <tr>
+                    <td class="fw-bold ps-4">${p.name}</td>
+                    <td>$${parseFloat(p.price).toFixed(2)}</td>
+                    <td><span class="badge bg-light text-dark border">${p.tags || 'No Tags'}</span></td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) { tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error loading products.</td></tr>'; }
+    }
+
+//     async function generateInvoiceAndClear(tableId) {
+//     // 1. Fetch current live orders
+//     const res = await fetch('/api/admin/orders/live');
+//     const orders = await res.json();
+    
+//     // 2. Filter active orders for this specific table
+//     const tableOrders = orders.filter(o => o.table_id == tableId && o.status !== 'Completed');
+    
+//     if (tableOrders.length === 0) return alert("No active orders for this table.");
+
+//     let grandTotal = 0;
+//     let itemListHtml = '';
+
+//     // Populate Receipt Details
+//     document.getElementById('invDate').innerText = new Date().toLocaleString();
+//     document.getElementById('invTable').innerText = tableId;
+//     document.getElementById('invUser').innerText = tableOrders[0].customer || "Guest";
+
+//     tableOrders.forEach(order => {
+//         grandTotal += order.total_revenue;
+//         // In a real app, you'd fetch the specific items names from the order
+//         // For now, we list the Order Summary
+//         itemListHtml += `
+//             <tr>
+//                 <td>Order #${order.id}</td>
+//                 <td align="center">1</td>
+//                 <td align="right">$${order.total_revenue.toFixed(2)}</td>
+//             </tr>`;
+//     });
+
+//     document.getElementById('invItems').innerHTML = itemListHtml;
+//     document.getElementById('invTotal').innerText = `$${grandTotal.toFixed(2)}`;
+
+//     // 3. Print the Invoice
+//     const printContent = document.getElementById('invoicePrintArea').innerHTML;
+//     const printWindow = window.open('', '', 'height=600,width=800');
+//     printWindow.document.write('<html><head><title>Print Receipt</title></head><body>');
+//     printWindow.document.write(printContent);
+//     printWindow.document.write('</body></html>');
+//     printWindow.document.close();
+//     printWindow.print();
+
+//     // 4. Final Step: Tell Backend to Clear Table
+//     if(confirm("Payment confirmed? This will clear the table for new guests.")) {
+//         const clearRes = await fetch(`/api/admin/tables/clear/${tableId}`, { method: 'POST' });
+//         if(clearRes.ok) {
+//             loadLiveOrders();
+//             loadQRCodes(); // Updates table color to Green
+//         }
+//     }
+// }
+
+// async function generateInvoiceAndClear(tableId) {
+//     // Stage 1: Entry
+//     console.log("Stage 1: Process started for Table ID:", tableId);
+
+//     try {
+//         // Stage 2: Fetching
+//         const res = await fetch('/api/admin/orders/live');
+//         if (!res.ok) throw new Error("Failed to fetch orders");
+//         const orders = await res.json();
+//         console.log("Stage 2: Orders received:", orders.length);
+
+//         // Stage 3: Filtering (Safety check: tableId and status)
+//         // We use loose equality == to handle string/number mismatches
+//         const activeOrders = orders.filter(o => 
+//             o.table_id == tableId && 
+//             o.status !== 'Completed' && 
+//             o.status !== 'Cancelled'
+//         );
+
+//         if (activeOrders.length === 0) {
+//             alert("No active orders found for Table " + tableId);
+//             return;
+//         }
+
+//         // Stage 4: Populating HTML (Safety check: Optional Chaining)
+//         let total = 0;
+//         const customerName = activeOrders[0]?.customer || "Guest";
+        
+//         // Populate the hidden print div
+//         document.getElementById('invDate').innerText = new Date().toLocaleString();
+//         document.getElementById('invTable').innerText = tableId;
+//         document.getElementById('invUser').innerText = customerName;
+
+//         document.getElementById('invItems').innerHTML = activeOrders.map(o => {
+//             const revenue = parseFloat(o.total_revenue || 0);
+//             total += revenue;
+//             return `<tr><td>Order #${o.id}</td><td align="right">$${revenue.toFixed(2)}</td></tr>`;
+//         }).join('');
+
+//         document.getElementById('invTotal').innerText = `$${total.toFixed(2)}`;
+
+//         // Stage 5: The Print Window
+//         const printDiv = document.getElementById('invoicePrintArea');
+//         if (!printDiv) {
+//             alert("Error: HTML element 'invoicePrintArea' is missing from your admin.html!");
+//             return;
+//         }
+
+//         const win = window.open('', '', 'height=500,width=600');
+//         win.document.write('<html><head><title>Print</title></head><body>');
+//         win.document.write(printDiv.innerHTML);
+//         win.document.write('</body></html>');
+//         win.document.close();
+        
+//         // We add a small delay so the window content loads before printing
+//         setTimeout(() => {
+//             win.print();
+//             win.close();
+            
+//             // Stage 6: Final Backend Call
+//             // This is where the Network request happens
+//             triggerBackendClear(tableId);
+//         }, 500);
+
+//     } catch (err) {
+//         console.error("CRASH DETECTED:", err);
+//         alert("System Error: " + err.message);
+//     }
+// }
+
+// --- ACTION: BILL & CLEAR ---
+/**
+ * STEP 1: Generate the Bill (Display only)
+ */
+/**
+ * Unified Bill & Clear Logic
+ * 1. Generates the printable receipt
+ * 2. Calls the backend to mark orders as 'Completed'
+ * 3. Forces a reload to update Analytics and Invoices
+ */
+async function generateInvoiceAndClear(tableId) {
+    try {
+        // 1. Fetch current live orders to build the bill
+        const res = await fetch('/api/admin/orders/live');
+        const orders = await res.json();
+
+        // Only bill orders that aren't already finished
+        const activeOrders = orders.filter(o => 
+            o.table_id == tableId && 
+            o.status !== 'Completed' && 
+            o.status !== 'Cancelled'
+        );
+
+        if (activeOrders.length === 0) return alert("No active orders for Table " + tableId);
+
+        // 2. Populate Receipt Modal/Print Area
+        let total = 0;
+        document.getElementById('invDate').innerText = new Date().toLocaleString();
+        document.getElementById('invTable').innerText = tableId;
+        document.getElementById('invUser').innerText = activeOrders[0].customer || "Guest";
+
+        document.getElementById('invItems').innerHTML = activeOrders.map(o => {
+            const rev = parseFloat(o.total_revenue || 0);
+            total += rev;
+            return `<tr><td>Order #${o.id}</td><td align="right">$${rev.toFixed(2)}</td></tr>`;
+        }).join('');
+
+        document.getElementById('invTotal').innerText = `$${total.toFixed(2)}`;
+
+        // 3. Open Print Window
+        const printDiv = document.getElementById('invoicePrintArea');
+        const win = window.open('', '', 'height=500,width=600');
+        win.document.write('<html><head><title>Receipt</title></head><body>' + printDiv.innerHTML + '</body></html>');
+        win.document.close();
+        
+        setTimeout(async () => {
+            win.print();
+            win.close();
+            
+            // 4. Finalize the Session
+            if (confirm(`Payment received for Table ${tableId}? This will archive the orders and update Analytics.`)) {
+                const clearRes = await fetch(`/api/admin/tables/clear/${tableId}`, { method: 'POST' });
+                const result = await clearRes.json();
+                
+                if (result.success) {
+                    alert("Table cleared and Invoice archived.");
+                    // THIS IS THE FIX: Forced reload ensures DB sync
+                    window.location.reload(); 
+                }
+            }
+        }, 500);
+
+    } catch (err) {
+        console.error("Bill generation failed:", err);
+    }
+}
+/**
+ * STEP 2: Mark Session as Inactive & Move to Invoices
+ */
+async function confirmPaymentAndClear(tableId) {
+    if (!confirm(`Mark Table ${tableId} as Paid and Clear?`)) return;
+
+    try {
+        const response = await fetch(`/api/admin/tables/clear/${tableId}`, { 
+            method: 'POST' 
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            // CRITICAL: This reloads the page to clear the 'Active Session' 
+            // from the browser's memory and refresh Analytics from the DB.
+            window.location.reload(); 
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (err) {
+        console.error("Clear failed:", err);
+    }
+}
+
+// Separate function for the Backend Call to keep it clean
+// async function proceedToClear(tableId) {
+//     if (!confirm(`Payment received for Table ${tableId}? This will reset the table.`)) return;
+
+//     try {
+//         const response = await fetch(`/api/admin/tables/clear/${tableId}`, {
+//             method: 'POST',
+//             headers: { 'Content-Type': 'application/json' }
+//         });
+//         const result = await response.json();
+
+//         if (result.success) {
+//             alert("Table " + tableId + " is now Available.");
+//             loadLiveOrders(); // Refresh the list
+//             if (typeof loadQRCodes === 'function') loadQRCodes(); // Refresh QR grid colors
+//         } else {
+//             alert("Server Error: " + result.message);
+//         }
+//     } catch (err) {
+//         alert("Could not connect to server to clear table.");
+//     }
+// }
+
+async function proceedToClear(tableId) {
+    if (!confirm(`Payment received for Table ${tableId}?`)) return;
+
+    const response = await fetch(`/api/admin/tables/clear/${tableId}`, { method: 'POST' });
+    const result = await response.json();
+
+    if (result.success) {
+        alert("Table " + tableId + " is now clean and available.");
+        // FORCE the entire page to reload to clear JS variables
+        location.reload(); 
+    }
+}
+
+async function triggerBackendClear(tableId) {
+    if (!confirm("Print successful? Resetting Table " + tableId + "...")) return;
+
+    console.log("Stage 6: Sending POST to server...");
+    const clearRes = await fetch(`/api/admin/tables/clear/${tableId}`, { 
+        method: 'POST'
+    });
+    
+    if (clearRes.ok) {
+        alert("Table Cleared Successfully!");
+        location.reload(); 
+    } else {
+        alert("Server failed to clear table.");
+    }
+}
+async function finalizeTableClear(tableId) {
+    if (!confirm(`Payment received? Table ${tableId} will be reset.`)) return;
+
+    try {
+        const response = await fetch(`/api/admin/tables/clear/${tableId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            alert("Table Cleared!");
+            loadLiveOrders(); // Refresh the admin table
+            if (typeof loadQRCodes === 'function') loadQRCodes(); // Reset table color
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (err) {
+        console.error("Request failed:", err);
+        alert("Could not connect to server.");
+    }
+}
+
+
+    async function deleteProduct(id) {
+        if(!confirm("Delete this product?")) return;
+        const res = await fetch(`/api/products/delete/${id}`, { method: 'DELETE' });
+        if(res.ok) loadProducts();
+    }
+
+    // --- PRODUCT MANAGEMENT ---
+
+function saveProduct() {
+    // 1. Grab values from the modal IDs
+    const data = {
+        name: document.getElementById('p_name').value,
+        price: parseFloat(document.getElementById('p_price').value),
+        cost: parseFloat(document.getElementById('p_cost').value),
+        tags: document.getElementById('p_tags').value
+    };
+
+    console.log("Attempting to save product:", data); // Check your F12 console!
+
+    // 2. Validate
+    if (!data.name || isNaN(data.price)) {
+        alert("Please enter a valid Name and Price");
+        return;
+    }
+
+    // 3. Send to Backend
+    fetch('/api/products/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+    if (result.success) {
+        // 1. Get the modal element
+        const modalElement = document.getElementById('addProductModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        
+        // 2. Hide the modal
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+
+        // 3. FORCE remove the "stuck" backdrop and reset the body
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+        document.body.style.overflow = 'auto';
+
+        alert("Product saved successfully!");
+        loadProducts(); // Refresh your list
+    } else {
+        alert("Error: " + result.message);
+    }
+})
+    .catch(err => {
+        console.error("Fetch error:", err);
+        alert("Server communication failed.");
+    });
+}
+
+    // --- 3. Order Logic (Fixed Status & Persistence) ---
+//     async function loadLiveOrders() {
+//         const res = await fetch('/api/admin/orders/live');
+//         const orders = await res.json();
+//         const tbody = document.getElementById('live-orders-table');
+//         if(!tbody) return;
+
+//         tbody.innerHTML = orders.map(o => {
+//             const isDone = o.status === 'Completed';
+//             return `
+//             <tr class="${isDone ? 'opacity-75 bg-light' : ''}">
+//                 <td class="ps-4 fw-bold">#${o.id}</td>
+//                 <td class="text-muted small">${o.time}</td>
+//                 <td><span class="badge bg-light text-dark border">${o.source === 'Manual' ? 'Walk-in' : 'Table ' + o.table_id}</span></td>
+//                 <td class="fw-bold text-success">$${o.total.toFixed(2)}</td>
+//                 <td><span class="badge ${isDone ? 'bg-success' : 'bg-warning text-dark'}">${o.status}</span></td>
+//                 <td class="text-end pe-4">
+//                     ${!isDone ? `
+//                         <button class="btn btn-sm btn-success" onclick="updateOrderStatus(${o.id}, 'Completed')">
+//                             <i class="bi bi-check-lg"></i> Complete
+//                         </button>
+//                     ` : '<i class="bi bi-check-circle-fill text-success me-2"></i>'}
+//                     <button class="btn btn-sm btn-outline-danger" onclick="deleteOrder(${o.id})">
+//                         <i class="bi bi-trash"></i>
+//                     </button>
+//                 </td>
+//             </tr>`;
+//         }).join('');
+//     }
+
+//     function completeOrder(orderId) {
+//     console.log("Attempting to complete order:", orderId);
+    
+//     fetch(`/api/orders/complete/${orderId}`, { 
+//         method: 'POST' 
+//     })
+//     .then(res => {
+//         if (!res.ok) throw new Error('Route not found (404)');
+//         return res.json();
+//     })
+//     .then(data => {
+//         if (data.success) {
+//             loadLiveOrders(); // Refresh table
+//             if (typeof getAnalytics === 'function') getAnalytics(); // Refresh stats
+//         }
+//     })
+//     .catch(err => {
+//         console.error(err);
+//         alert("Error: Make sure you added the /api/orders/complete route to app.py");
+//     });
+// }
+// async function loadLiveOrders() {
+//     try {
+//         const res = await fetch('/api/admin/orders/live');
+//         const orders = await res.json();
+//         const tbody = document.getElementById('live-orders-table');
+//         if (!tbody) return;
+
+//         // 1. Group active orders by Table ID
+//         const tableGroups = {};
+//         orders.forEach(o => {
+//             // Only group orders that aren't finished yet
+//             if (o.status !== 'Completed' && o.status !== 'Cancelled') {
+//                 if (!tableGroups[o.table_id]) {
+//                     tableGroups[o.table_id] = {
+//                         customer: o.customer || "Guest",
+//                         total: 0,
+//                         orders: []
+//                     };
+//                 }
+//                 tableGroups[o.table_id].total += parseFloat(o.total_revenue || o.total || 0);
+//                 tableGroups[o.table_id].orders.push(o);
+//             }
+//         });
+
+//         // 2. Build the UI
+//         // We show grouped "Active Tables" first, then individual history below if needed
+//         let html = '';
+
+//         Object.keys(tableGroups).forEach(tId => {
+//             const group = tableGroups[tId];
+//             html += `
+//             <tr class="table-primary-light" style="border-left: 5px solid #0d6efd;">
+//                 <td class="ps-4">
+//                     <div class="fw-bold text-primary">Table ${tId}</div>
+//                     <small class="text-muted">${group.customer}</small>
+//                 </td>
+//                 <td colspan="2">
+//                     <div class="small">
+//                         ${group.orders.map(order => `#${order.id} (${order.status})`).join(', ')}
+//                     </div>
+//                 </td>
+//                 <td class="fw-bold text-dark fs-5">$${group.total.toFixed(2)}</td>
+//                 <td><span class="badge bg-primary">Active Session</span></td>
+//                 <td class="text-end pe-4">
+//                     <button class="btn btn-sm btn-dark" onclick="generateInvoiceAndClear(${tId})">
+//                         <i class="bi bi-receipt"></i> Bill & Clear
+//                     </button>
+//                 </td>
+//             </tr>`;
+//         });
+
+//         // 3. Optional: Show recently completed individual orders below for record
+//         const completedOrders = orders.filter(o => o.status === 'Completed' || o.status === 'Cancelled').slice(0, 5);
+//         if (completedOrders.length > 0) {
+//             html += `<tr class="table-light"><td colspan="6" class="text-center small text-muted">Recently Settled</td></tr>`;
+//             completedOrders.forEach(o => {
+//                 const timeStr = new Date(o.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+//                 html += `
+//                 <tr class="opacity-50">
+//                     <td class="ps-4">#${o.id}</td>
+//                     <td class="small">${timeStr}</td>
+//                     <td>Table ${o.table_id}</td>
+//                     <td>$${parseFloat(o.total_revenue || 0).toFixed(2)}</td>
+//                     <td><span class="badge bg-secondary">${o.status}</span></td>
+//                     <td class="text-end pe-4">
+//                         <i class="bi bi-check-circle-fill text-success"></i>
+//                     </td>
+//                 </tr>`;
+//             });
+//         }
+
+//         tbody.innerHTML = html;
+
+//     } catch (err) {
+//         console.error("Critical error loading orders:", err);
+//     }
+// }
+async function loadLiveOrders() {
+    try {
+        const res = await fetch('/api/admin/orders/live');
+        const orders = await res.json();
+        const tbody = document.getElementById('live-orders-table');
+        if (!tbody) return;
+
+        let html = '';
+
+        // 1. FILTER FOR ACTIVE ORDERS (Pending, Kitchen, Served, etc.)
+        const activeOrders = orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled');
+        
+        if (activeOrders.length > 0) {
+            activeOrders.forEach(o => {
+                // Formatting time if it's an ISO string or simple time
+                let timeDisplay = o.time;
+                if(o.time && o.time.includes('T')) {
+                    timeDisplay = new Date(o.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+
+                html += `
+                <tr class="align-middle">
+                    <td class="ps-4">
+                        <div class="fw-bold">#${o.id}</div>
+                        <small class="text-muted">${o.customer || 'Guest'}</small>
+                    </td>
+                    <td><span class="text-muted small">${timeDisplay || '--:--'}</span></td>
+                    <td><span class="badge btn-outline-dark text-dark border">Table ${o.table_id}</span></td>
+                    <td class="fw-bold text-dark">$${parseFloat(o.total_revenue || 0).toFixed(2)}</td>
+                    <td>
+                        <span class="badge ${o.status === 'Pending' ? 'bg-warning text-dark' : 'bg-info'}">
+                            ${o.status}
+                        </span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-success px-3 shadow-sm" onclick="markAsCompleted(${o.id})">
+                            <i class="bi bi-check-lg me-1"></i> Complete
+                        </button>
+                    </td>
+                </tr>`;
+            });
+        } else {
+            html += `<tr><td colspan="6" class="text-center py-5 text-muted">No active orders found.</td></tr>`;
+        }
+
+        // 2. INVOICES SECTION (Recently Completed)
+        const completed = orders.filter(o => o.status === 'Completed').slice(0, 5);
+        if (completed.length > 0) {
+            html += `<tr class="table-light"><td colspan="6" class="text-center small text-uppercase fw-bold text-muted" style="letter-spacing: 1px; padding: 15px;">Recently Sent to Invoices</td></tr>`;
+            completed.forEach(o => {
+                html += `
+                <tr class="opacity-75 bg-light">
+                    <td class="ps-4 text-muted">#${o.id}</td>
+                    <td class="small text-muted">${o.time ? (o.time.includes('T') ? new Date(o.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : o.time) : ''}</td>
+                    <td class="small">Table ${o.table_id}</td>
+                    <td class="small text-success fw-bold">$${parseFloat(o.total_revenue || 0).toFixed(2)}</td>
+                    <td><span class="badge bg-secondary">Archived</span></td>
+                    <td class="text-end pe-4">
+                        <i class="bi bi-file-earmark-check text-success fs-5"></i>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        tbody.innerHTML = html;
+
+    } catch (err) {
+        console.error("Critical error loading orders:", err);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Error loading data.</td></tr>`;
+    }
+}
+
+// Support function to trigger the backend update
+async function markAsCompleted(orderId) {
+    if (!confirm(`Mark Order #${orderId} as completed?`)) return;
+
+    try {
+        const response = await fetch(`/api/admin/orders/update/${orderId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'Completed' })
+        });
+        
+        const result = await response.json();
+
+        if (result.success) {
+            // SHOW THE MESSAGE
+            alert(`✅ Order #${orderId} marked as completed!`); 
+
+            // REFRESH THE DATA
+            await loadLiveOrders();
+            
+            // This is the function we created to fix the $0.00 issue
+            if (typeof updateDashboardStats === 'function') {
+                await updateDashboardStats();
+            }
+            
+            console.log("Activity finished: Order moved to Invoices.");
+        } else {
+            alert("Error: " + result.message);
+        }
+    } catch (err) {
+        console.error("Failed to complete:", err);
+        alert("Network error. Order was not updated.");
+    }
+}
+
+// This function fetches the data from the backend /api/analytics route
+async function updateDashboardStats() {
+    try {
+        const response = await fetch('/api/analytics');
+        const data = await response.json();
+        
+        console.log("Frontend received analytics:", data); // Check F12 console for this
+
+        if (data.metrics) {
+            // Find your HTML elements by ID and update their text
+            const revElem = document.getElementById('total-revenue'); 
+            const ordElem = document.getElementById('total-orders');
+            const profElem = document.getElementById('total-profit');
+
+            if (revElem) revElem.innerText = `$${data.metrics.revenue_generated.toFixed(2)}`;
+            if (ordElem) ordElem.innerText = data.metrics.orders_created;
+            if (profElem) profElem.innerText = `$${data.metrics.profits_made.toFixed(2)}`;
+        }
+    } catch (err) {
+        console.error("Dashboard UI update failed:", err);
+    }
+}
+
+// Call this every time the page loads
+document.addEventListener('DOMContentLoaded', updateDashboardStats);
+
+// Ensure stats load immediately when the admin page opens
+document.addEventListener('DOMContentLoaded', updateDashboardStats);
+
+async function markAsCompleted(orderId) {
+    const response = await fetch(`/api/admin/orders/update/${orderId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Completed' }) // Must match backend exactly
+    });
+    // ...
+}
+
+/**
+ * Logic to generate the invoice and then call the backend to reset the table
+ */
+// async function generateInvoiceAndClear(tableId) {
+//     if (!confirm(`Generate bill and clear Table ${tableId}?`)) return;
+
+//     // 1. Run the Print Function (from the previous step)
+//     // We assume the hidden 'invoicePrintArea' exists in your HTML
+//     await populateAndPrintInvoice(tableId);
+
+//     // 2. Call the backend to clear the table
+//     try {
+//         const res = await fetch(`/api/admin/tables/clear/${tableId}`, { 
+//             method: 'POST',
+//             headers: {'Content-Type': 'application/json'}
+//         });
+//         const data = await res.json();
+        
+//         if (data.success) {
+//             loadLiveOrders(); // Refresh the table
+//             if (typeof loadQRCodes === 'function') loadQRCodes(); // Turn table icon green
+//         } else {
+//             alert("Error clearing table: " + data.message);
+//         }
+//     } catch (err) {
+//         console.error("Clear Table failed:", err);
+//     }
+// }
+
+
+// Unified Status Updater (Use this for Complete/Cancel/Cook)
+async function updateOrderStatus(orderId, newStatus) {
+    try {
+        const res = await fetch(`/api/admin/orders/update/${orderId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            await loadLiveOrders(); // Refresh table
+            if (typeof loadAnalytics === 'function') loadAnalytics(); // Refresh dashboard stats
+            if (typeof loadQRCodes === 'function') loadQRCodes(); // Refresh table colors
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (err) {
+        console.error("Update failed:", err);
+    }
+}
+
+// Function to handle the Receipt Download
+// function downloadReceipt(orderId) {
+//     // Simply open the API URL in a new tab to trigger download
+//     window.open(`/api/admin/orders/receipt/${orderId}`, '_blank');
+// }
+
+// // Ensure your History Table row looks like this:
+// function loadHistory() {
+//     fetch('/api/admin/orders/history')
+//         .then(res => res.json())
+//         .then(orders => {
+//             const container = document.getElementById('history-table-body'); // check your ID
+//             container.innerHTML = '';
+//             orders.forEach(o => {
+//                 container.innerHTML += `
+//                     <tr>
+//                         <td>#${o.id}</td>
+//                         <td>${o.time}</td>
+//                         <td>$${o.total.toFixed(2)}</td>
+//                         <td>
+//                             <button class="btn btn-sm btn-outline-primary" onclick="downloadReceipt(${o.id})">
+//                                 <i class="bi bi-printer me-1"></i> Receipt
+//                             </button>
+//                         </td>
+//                     </tr>`;
+//             });
+//         });
+// }
+function loadHistory() {
+    fetch('/api/admin/orders/history')
+        .then(res => res.json())
+        .then(orders => {
+            const container = document.getElementById('transaction-table-body');
+            if (!container) return;
+            container.innerHTML = '';
+
+            orders.forEach(o => {
+                container.innerHTML += `
+                    <tr>
+                        <td class="ps-4">#${o.id}</td>
+                        <td class="fw-bold">$${o.total.toFixed(2)}</td>
+                        <td>${o.type || 'Manual'}</td>
+                        <td class="text-muted small">${o.time}</td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-primary" onclick="downloadReceipt(${o.id})">
+                                <i class="bi bi-download"></i> Receipt
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+        });
+}
+
+// THIS FUNCTION MUST BE ACCESSIBLE
+function downloadReceipt(orderId) {
+    // Open the exact URL we fixed in app.py
+    window.location.href = `/api/admin/orders/receipt/${orderId}`;
+}
+
+function createNewUser() {
+    // 1. Grab values from the modal
+    const username = document.getElementById('new_username').value;
+    const password = document.getElementById('new_password').value;
+    const role = document.getElementById('new_role').value;
+
+    // 2. Simple validation
+    if (!username || !password) {
+        alert("Please fill in all fields");
+        return;
+    }
+
+    const data = {
+        username: username,
+        password: password,
+        role: role
+    };
+
+    // 3. Send to Backend (Matches the route in your app.py)
+    fetch('/api/admin/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            // 4. Properly hide modal and clean up backdrop
+            const modalEl = document.getElementById('addUserModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // Force removal of the dark overlay
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style = "";
+
+            alert("User created successfully!");
+            
+            // 5. Clear fields and refresh the user list
+            document.getElementById('new_username').value = '';
+            document.getElementById('new_password').value = '';
+            if (typeof loadUsers === 'function') loadUsers(); 
+        } else {
+            alert("Error: " + result.message);
+        }
+    })
+    .catch(err => {
+        console.error("User creation failed:", err);
+        alert("Server error. Check your terminal.");
+    });
+}
+
+    async function updateOrderStatus(orderId, newStatus) {
+    try {
+        const res = await fetch(`/api/admin/orders/update/${orderId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        const result = await res.json();
+
+        if (res.ok) {
+            // 1. Refresh the Orders list
+            await loadLiveOrders();
+            
+            // 2. Refresh the Dashboard stats
+            await loadAnalytics();
+            
+            // 3. Refresh QR Tables to show the table is now free/available
+            if (typeof loadQRCodes === 'function') {
+                await loadQRCodes();
+            }
+
+            console.log(`Order ${orderId} updated to ${newStatus}`);
+        } else {
+            alert("Update Failed: " + (result.message || "Unknown error"));
+        }
+    } catch (err) {
+        console.error("Critical error updating order:", err);
+        alert("Server communication error. Check your terminal.");
+    }
+}
+
+    async function deleteOrder(id) {
+        if(!confirm("Permenantly delete this order?")) return;
+        const res = await fetch(`/api/admin/orders/delete/${id}`, { method: 'DELETE' });
+        if(res.ok) loadLiveOrders();
+    }
+
+    // --- 4. QR & Table Logic ---
+    async function loadQRCodes() {
+    const res = await fetch('/api/admin/tables');
+    const tables = await res.json();
+    const container = document.getElementById('qr-table-list');
+    if (!container) return;
+
+    container.innerHTML = tables.map(t => {
+        // Logic to define the status badge color
+        const statusClass = t.status === 'Available' ? 'bg-success' : 'bg-danger';
+        const cardBorder = t.status === 'Available' ? '' : 'border-danger';
+
+        return `
+            <div class="col-md-3 mb-3">
+                <div class="card text-center shadow-sm ${cardBorder}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">Table ${t.table_number}</h6>
+                            <span class="badge ${statusClass}">${t.status}</span>
+                        </div>
+                        
+                        <div id="qr-space-${t.id}" class="d-flex justify-content-center my-3 p-2 bg-white rounded shadow-sm"></div>
+                        
+                        <div class="btn-group w-100 mt-2">
+                            <button class="btn btn-sm btn-light border" onclick="downloadQR(${t.id}, ${t.table_number})">
+                                <i class="bi bi-download"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTable(${t.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            
+                            <button class="btn btn-sm btn-outline-warning" onclick="forceClearTable(${t.table_number})">
+                                <i class="bi bi-arrow-clockwise"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+
+    // Generate the QR Codes after the HTML is injected
+    tables.forEach(t => {
+        const qrContainer = document.getElementById(`qr-space-${t.id}`);
+        if (qrContainer) {
+            new QRCode(qrContainer, {
+                text: `${window.location.origin}/menu?table=${t.table_number}`,
+                width: 120,
+                height: 120,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+    });
+}
+
+    async function addNewTable() {
+    const tableNum = prompt("Enter Table Number:");
+    if (!tableNum) return;
+
+    try {
+        const res = await fetch('/api/admin/tables/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ table_number: tableNum })
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+            // Refresh the list to show the new table
+            loadQRCodes(); 
+        } else {
+            alert("Error: " + (result.message || "Could not add table"));
+        }
+    } catch (err) {
+        console.error("Failed to add table:", err);
+        alert("Server error. Check if your terminal is running.");
+    }
+}
+
+    function downloadQR(id, tableNum) {
+        const canvas = document.querySelector(`#qr-space-${id} canvas`);
+        const link = document.createElement('a');
+        link.download = `Table-${tableNum}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+
+    async function deleteTable(id) {
+        if(!confirm("Delete table?")) return;
+        await fetch(`/api/admin/tables/delete/${id}`, { method: 'DELETE' });
+        loadQRCodes();
+    }
+
+    // --- 5. Manual Order & Users ---
+    function addToManualList() {
+        const select = document.getElementById('manual-p-select');
+        const qty = parseInt(document.getElementById('manual-qty').value);
+        const selected = select.options[select.selectedIndex];
+        // This runs automatically when the Manual Order Modal opens
+        document.getElementById('manualOrderModal').addEventListener('show.bs.modal', function () {
+            loadProductsForManualOrder();
+        });
+        manualCart.push({
+            product_id: select.value,
+            name: selected.text.split('(')[0].trim(),
+            price: parseFloat(selected.dataset.price),
+            quantity: qty
+        });
+        renderManualCart();
+    }
+    async function forceClearTable(tableNum) {
+    if(!confirm(`Force Table ${tableNum} to Available?`)) return;
+    
+    // We can reuse the order update logic or a dedicated table status route
+    const res = await fetch(`/api/admin/tables/update_status`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ table_number: tableNum, status: 'Available' })
+    });
+    
+    if(res.ok) loadQRCodes();
+}
+
+    function renderManualCart() {
+        const preview = document.getElementById('manual-items-preview');
+        let total = 0;
+        preview.innerHTML = manualCart.map(item => {
+            total += (item.price * item.quantity);
+            return `<li class="list-group-item d-flex justify-content-between small">${item.name} x${item.quantity} <span>$${(item.price * item.quantity).toFixed(2)}</span></li>`;
+        }).join('');
+        document.getElementById('manual-total').innerText = `$${total.toFixed(2)}`;
+    }
+
+    function submitManualOrder() {
+    if (manualCart.length === 0) {
+        alert("Cart is empty!");
+        return;
+    }
+
+    const data = {
+        items: manualCart,
+        table_id: null, // For walk-ins
+        order_type: 'Manual'
+    };
+
+    fetch('/api/admin/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            // 1. Hide the modal
+            const modalEl = document.getElementById('manualOrderModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // 2. FORCE CLEANUP (This removes the dark screen)
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style = ""; 
+
+            alert("Order Created Successfully!");
+            
+            // 3. Reset Cart and Refresh View
+            manualCart = [];
+            renderManualCart();
+            if (typeof loadLiveOrders === "function") loadLiveOrders();
+            if (typeof getAnalytics === "function") getAnalytics();
+        } else {
+            alert("Error: " + result.message);
+        }
+    })
+    .catch(err => console.error("Order submission failed:", err));
+}
+
+    // 1. THIS FIXES THE EMPTY DROPDOWN
+// Runs automatically when the Manual Order Modal opens
+
+// 2. THIS FIXES THE "UNCLICKABLE" SCREEN AFTER SAVING
+// function saveProduct() {
+//     const data = {
+//         name: document.getElementById('p_name').value,
+//         price: parseFloat(document.getElementById('p_price').value),
+//         cost: parseFloat(document.getElementById('p_cost').value),
+//         tags: document.getElementById('p_tags').value
+//     };
+
+//     fetch('/api/products/add', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(data)
+//     })
+//     .then(res => res.json())
+//     .then(result => {
+//         if (result.success) {
+//             // Hide the modal properly
+//             const modalEl = document.getElementById('addProductModal');
+//             const modalInstance = bootstrap.Modal.getInstance(modalEl);
+//             if (modalInstance) modalInstance.hide();
+
+//             // CLEANUP: Remove the dark "stuck" backdrop and fix the scrolling
+//             document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+//             document.body.classList.remove('modal-open');
+//             document.body.style = ""; 
+
+//             alert("Product saved successfully!");
+//             location.reload(); // Simplest way to refresh everything
+//         } else {
+//             alert("Error: " + result.message);
+//         }
+//     })
+//     .catch(err => alert("Server Error: Check if you are logged in."));
+// }
+
+// REPLACE THE saveProduct FUNCTION NEAR THE BOTTOM WITH THIS:
+function saveProduct() {
+    const data = {
+        name: document.getElementById('p_name').value,
+        price: parseFloat(document.getElementById('p_price').value),
+        cost: parseFloat(document.getElementById('p_cost').value),
+        tags: document.getElementById('p_tags').value
+    };
+
+    fetch('/api/products/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(result => {
+        if (result.success) {
+            // 1. Hide the modal properly
+            const modalEl = document.getElementById('addProductModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // 2. CLEANUP: Remove the dark "stuck" backdrop
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style = ""; 
+
+            alert("Product saved successfully!");
+            
+            // 3. REFRESH DATA ONLY (No page reload)
+            loadProducts(); 
+            
+            // 4. CLEAR INPUTS for next time
+            document.getElementById('p_name').value = '';
+            document.getElementById('p_price').value = '';
+            document.getElementById('p_cost').value = '';
+            document.getElementById('p_tags').value = '';
+        } else {
+            alert("Error: " + result.message);
+        }
+    })
+    .catch(err => alert("Server Error: Check your connection."));
+}
+
+    async function loadUsers() {
+        const res = await fetch('/api/admin/users');
+        const users = await res.json();
+        const staffBody = document.getElementById('staff-table-body');
+        const custBody = document.getElementById('customer-table-body');
+        
+        staffBody.innerHTML = users.filter(u => u.role !== 'customer').map(u => `
+            <tr><td>${u.username}</td><td>${u.role}</td><td>${u.joined}</td><td><button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">Delete</button></td></tr>
+        `).join('');
+        custBody.innerHTML = users.filter(u => u.role === 'customer').map(u => `
+            <tr><td>${u.phone}</td><td>Verified</td><td>${u.joined}</td><td><button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">Remove</button></td></tr>
+        `).join('');
+    }
+
+    async function deleteUser(id) {
+        if(confirm("Delete user?")) {
+            await fetch(`/api/admin/users/delete/${id}`, { method: 'DELETE' });
+            loadUsers();
+        }
+    }
+
+    async function loadTransactions() {
+    const res = await fetch('/api/admin/orders/history');
+    const data = await res.json();
+    const tbody = document.getElementById('transaction-table-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = data.map(o => `
+        <tr>
+            <td class="ps-4">#${o.id}</td>
+            <td class="fw-bold text-success">$${o.total.toFixed(2)}</td>
+            <td><span class="badge bg-light text-dark border">COMPLETED</span></td>
+            <td class="text-muted small">${o.time}</td>
+            <td class="text-end pe-4">
+                <button class="btn btn-sm btn-primary shadow-sm" onclick="downloadReceipt(${o.id})">
+                    <i class="bi bi-download me-1"></i> Receipt
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+    window.onload = () => {
+    // 1. Check if we have a saved section from before the refresh
+    const savedSection = localStorage.getItem('activeAdminSection') || 'dashboard';
+    
+    // 2. Find the navigation link corresponding to that section
+    const navLinks = document.querySelectorAll('.nav-link');
+    let targetLink = navLinks[0]; // Default to first link
+    
+    navLinks.forEach(link => {
+        if (link.getAttribute('onclick').includes(`'${savedSection}'`)) {
+            targetLink = link;
+        }
+    });
+
+    // 3. Trigger the section show logic
+    showSection(savedSection, targetLink);
+};
+
+    // Global fix: Remove dark backdrop whenever ANY modal is hidden
+    document.addEventListener('hidden.bs.modal', function () {
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style = "";
+    });
+
+    // This MUST be outside any other function to work
+document.addEventListener('DOMContentLoaded', function() {
+    const manualModal = document.getElementById('manualOrderModal');
+    if (manualModal) {
+        manualModal.addEventListener('show.bs.modal', function () {
+            const select = document.getElementById('manual-p-select');
+            fetch('/api/products')
+                .then(res => res.json())
+                .then(products => {
+                    select.innerHTML = '<option value="">-- Select Product --</option>';
+                    products.forEach(p => {
+                        select.innerHTML += `<option value="${p.id}" data-price="${p.price}">${p.name} - $${p.price}</option>`;
+                    });
+                });
+        });
+    }
+});
+
+// Place this at the very bottom of your script section
+window.downloadReceipt = function(orderId) {
+    console.log("Button clicked for order:", orderId);
+    if(!orderId) {
+        alert("Error: No Order ID found for this row.");
+        return;
+    }
+    // This forces the browser to try and download the file
+    window.location.href = `/api/admin/orders/receipt/${orderId}`;
+};
+
+function completeOrder(orderId) {
+    if (!confirm("Mark this order as completed?")) return;
+
+    fetch(`/api/orders/complete/${orderId}`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Force refresh the UI components
+            loadLiveOrders(); 
+            if (typeof getAnalytics === 'function') getAnalytics();
+        } else {
+            alert("Failed to update order status");
+        }
+    })
+    .catch(err => console.error("Error:", err));
+}
+function getAnalytics() {
+    fetch('/api/analytics')
+        .then(res => res.json())
+        .then(data => {
+            // Check your HTML IDs and match them here
+            // These are the IDs for the "Cards" at the top of your dashboard
+            const revEl = document.getElementById('total-revenue');
+            const ordEl = document.getElementById('total-orders');
+            const profEl = document.getElementById('total-profit');
+
+            if (revEl) revEl.innerText = `$${data.metrics.revenue_generated.toFixed(2)}`;
+            if (ordEl) ordEl.innerText = data.metrics.orders_created;
+            if (profEl) profEl.innerText = `$${data.metrics.profits_made.toFixed(2)}`;
+        })
+        .catch(err => console.error("Error fetching analytics:", err));
+}
+
+// Call it on page load so numbers show up when you refresh
+document.addEventListener('DOMContentLoaded', getAnalytics);
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</body>
+</html>

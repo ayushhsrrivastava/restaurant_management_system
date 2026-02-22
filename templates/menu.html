@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Menu | Table Experience</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        :root { --primary-color: #ff4757; }
+        body { background-color: #f8f9fa; padding-bottom: 100px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* View Management */
+        .view-section { display: none; animation: slideUp 0.4s ease; }
+        .view-section.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Menu Styling */
+        .filter-badge { cursor: pointer; transition: 0.3s; white-space: nowrap; border: 1px solid #ddd !important; background: white !important; color: #333 !important; padding: 8px 16px; }
+        .active-filter { background: var(--primary-color) !important; color: white !important; border-color: var(--primary-color) !important; }
+        .product-card { border-radius: 15px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: 0.2s; }
+        
+        /* Floating Cart - Fixed Z-Index and Clickability */
+        #floatingCart { 
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px; background: #1a1d20; color: white;
+            border-radius: 50px; padding: 15px 25px; z-index: 9999; 
+            display: none; justify-content: space-between; align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); cursor: pointer;
+        }
+        #floatingCart:active { transform: translateX(-50%) scale(0.95); }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="loginSection" class="view-section container py-5 text-center">
+    <div class="card p-4 border-0 shadow-sm" style="border-radius: 20px;">
+        <h2 class="fw-bold mb-3">Welcome! 👋</h2>
+        <p class="text-muted">Enter your phone number to start ordering</p>
+        <div class="mb-3">
+            <input type="tel" id="userPhone" class="form-control form-control-lg text-center" placeholder="Phone Number">
+        </div>
+        <button class="btn btn-lg w-100 btn-dark rounded-pill" onclick="sendOTP()">Send OTP</button>
+        <div id="otpInput" class="mt-3 d-none">
+            <input type="text" id="otpCode" class="form-control mb-2 text-center" placeholder="4-digit OTP">
+            <button class="btn btn-primary w-100 rounded-pill" onclick="verifyOTP()">Verify & View Menu</button>
+        </div>
+    </div>
+</div>
+
+<div id="menuSection" class="view-section">
+    <div class="container py-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3 class="fw-bold mb-0">Menu</h3>
+                <span class="badge bg-dark" id="tableTag">Table --</span>
+            </div>
+            <button class="btn btn-outline-dark btn-sm rounded-pill" onclick="showSection('orderTracking'); loadCustomerHistory();">My Orders</button>
+        </div>
+
+        <!-- <div class="d-flex overflow-auto gap-2 mb-4 pb-2 no-scrollbar" id="filterBar">
+            <span class="badge rounded-pill filter-badge active-filter" onclick="filterMenu('all', this)">All Items</span>
+            <span class="badge rounded-pill filter-badge" onclick="filterMenu('spicy', this)">🔥 Spicy</span>
+            <span class="badge rounded-pill filter-badge" onclick="filterMenu('sweet', this)">🍩 Desserts</span>
+            <span class="badge rounded-pill filter-badge" onclick="filterMenu('veg', this)">🍃 Vegetarian</span>
+        </div> -->
+        <div class="d-flex overflow-auto gap-2 mb-4 pb-2 no-scrollbar" id="filterBar">
+        </div>
+
+        <div id="productList" class="row"></div>
+    </div>
+</div>
+
+<div id="orderTracking" class="view-section container py-3">
+    <div class="d-flex align-items-center mb-4">
+        <button class="btn btn-light rounded-circle me-3" onclick="showSection('menuSection')"><i class="bi bi-arrow-left"></i></button>
+        <h4 class="fw-bold mb-0">My Orders</h4>
+    </div>
+    <div id="historyList"></div>
+</div>
+
+<div id="floatingCart" onclick="showCart()">
+    <span><i class="bi bi-cart-fill me-2"></i> <span id="cartCount">0</span> Items</span>
+    <span class="fw-bold">View Cart <i class="bi bi-chevron-right ms-2"></i></span>
+</div>
+
+<div class="modal fade" id="cartModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius: 20px;">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Review Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul id="cartItemList" class="list-group list-group-flush mb-3"></ul>
+                <div class="d-flex justify-content-between fw-bold fs-5 px-2">
+                    <span>Total</span>
+                    <span id="cartTotalSum" class="text-success">$0.00</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn btn-primary w-100 btn-lg rounded-pill" onclick="confirmOrder()">Confirm & Send to Kitchen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let allProducts = [];
+    let cart = {}; 
+    let userSession = JSON.parse(localStorage.getItem('user_session')) || null;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const tableId = urlParams.get('table');
+
+    function showSection(id) {
+        document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        updateCartDisplay();
+    }
+
+    function sendOTP() {
+        const phone = document.getElementById('userPhone').value;
+        if(phone.length < 10) return alert("Please enter a valid phone number");
+        document.getElementById('otpInput').classList.remove('d-none');
+    }
+
+    async function verifyOTP() {
+        const phone = document.getElementById('userPhone').value;
+        userSession = { phone: phone, id: Date.now() };
+        localStorage.setItem('user_session', JSON.stringify(userSession));
+        
+        await fetch('/api/admin/users/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username: phone, role: 'customer', password: 'otp_user' })
+        });
+        
+        init();
+    }
+
+    async function init() {
+        if(!userSession) return showSection('loginSection');
+        if(!tableId) return alert("Please scan a table QR code!");
+
+        document.getElementById('tableTag').innerText = "Table " + tableId;
+        showSection('menuSection');
+
+        const res = await fetch('/api/products');
+        allProducts = await res.json();
+        renderProducts(allProducts);
+    }
+
+    function renderProducts(products) {
+        const container = document.getElementById('productList');
+        container.innerHTML = products.map(p => `
+            <div class="col-12 mb-3">
+                <div class="card product-card p-3 d-flex flex-row justify-content-between align-items-center">
+                    <div style="flex: 1;">
+                        <div class="fw-bold fs-5">${p.name}</div>
+                        <div class="text-success fw-bold">$${p.price}</div>
+                        <small class="text-muted">${p.tags || ''}</small>
+                    </div>
+                    <div class="d-flex align-items-center bg-light rounded-pill p-1">
+                        <button class="btn btn-sm btn-white rounded-circle shadow-sm" onclick="updateCart(${p.id}, -1)">-</button>
+                        <span class="mx-3 fw-bold" id="qty-${p.id}">${cart[p.id] || 0}</span>
+                        <button class="btn btn-sm btn-dark rounded-circle shadow-sm" onclick="updateCart(${p.id}, 1)">+</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function updateCart(pid, change) {
+        cart[pid] = (cart[pid] || 0) + change;
+        if(cart[pid] <= 0) delete cart[pid];
+        
+        const qtyLabel = document.getElementById(`qty-${pid}`);
+        if(qtyLabel) qtyLabel.innerText = cart[pid] || 0;
+        updateCartDisplay();
+    }
+
+    function updateCartDisplay() {
+        const cartSize = Object.values(cart).reduce((a, b) => a + b, 0);
+        const currentView = document.querySelector('.view-section.active').id;
+        document.getElementById('cartCount').innerText = cartSize;
+        document.getElementById('floatingCart').style.display = (cartSize > 0 && currentView === 'menuSection') ? 'flex' : 'none';
+    }
+
+    function showCart() {
+        const list = document.getElementById('cartItemList');
+        let total = 0;
+        list.innerHTML = '';
+
+        Object.keys(cart).forEach(id => {
+            const product = allProducts.find(p => p.id == id);
+            if (product) {
+                const itemTotal = product.price * cart[id];
+                total += itemTotal;
+                list.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                        <div><div class="fw-bold">${product.name}</div><small>$${product.price} x ${cart[id]}</small></div>
+                        <span class="fw-bold">$${itemTotal.toFixed(2)}</span>
+                    </li>`;
+            }
+        });
+
+        document.getElementById('cartTotalSum').innerText = `$${total.toFixed(2)}`;
+        new bootstrap.Modal(document.getElementById('cartModal')).show();
+    }
+
+    // --- Updated init function ---
+async function init() {
+    if(!userSession) return showSection('loginSection');
+    if(!tableId) return alert("Please scan a table QR code!");
+
+    document.getElementById('tableTag').innerText = "Table " + tableId;
+    showSection('menuSection');
+
+    const res = await fetch('/api/products');
+    allProducts = await res.json();
+    
+    renderFilters(); // Generate dynamic filters first
+    renderProducts(allProducts); // Then show all products
+}
+
+// --- New function to extract and show tags ---
+function renderFilters() {
+    const filterBar = document.getElementById('filterBar');
+    
+    // 1. Get all tags, split them by comma, trim whitespace, and flatten into one list
+    const rawTags = allProducts.flatMap(p => p.tags ? p.tags.split(',').map(tag => tag.trim()) : []);
+    
+    // 2. Use a Set to get unique tags only, then convert back to an array
+    const uniqueTags = ['all', ...new Set(rawTags.filter(tag => tag !== ""))];
+
+    // 3. Create the HTML for the badges
+    filterBar.innerHTML = uniqueTags.map(tag => {
+        const label = tag === 'all' ? 'All Items' : tag.charAt(0).toUpperCase() + tag.slice(1);
+        const isActive = tag === 'all' ? 'active-filter' : '';
+        
+        return `
+            <span class="badge rounded-pill filter-badge ${isActive}" 
+                  onclick="filterMenu('${tag}', this)">
+                ${label}
+            </span>`;
+    }).join('');
+}
+
+// --- Updated filterMenu function ---
+function filterMenu(tag, element) {
+    // 1. Update UI active state
+    document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active-filter'));
+    element.classList.add('active-filter');
+
+    // 2. Filter logic
+    if (tag === 'all') {
+        renderProducts(allProducts);
+    } else {
+        const filtered = allProducts.filter(p => 
+            p.tags && p.tags.toLowerCase().includes(tag.toLowerCase())
+        );
+        renderProducts(filtered);
+    }
+}
+
+    async function confirmOrder() {
+        const items = Object.keys(cart).map(id => ({ product_id: parseInt(id), quantity: cart[id] }));
+        const res = await fetch('/api/admin/orders/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                table_id: tableId,
+                order_type: 'Dine-In',
+                items: items,
+                customer_phone: userSession.phone
+            })
+        });
+
+        if(res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
+            cart = {};
+            updateCartDisplay();
+            renderProducts(allProducts);
+            showSection('orderTracking');
+            loadCustomerHistory();
+        }
+    }
+
+    // async function loadCustomerHistory() {
+    //     const res = await fetch(`/api/admin/orders/live`);
+    //     const orders = await res.json();
+    //     const historyContainer = document.getElementById('historyList');
+    //     const myOrders = orders.filter(o => o.table_id == tableId);
+
+    //     if(myOrders.length === 0) {
+    //         historyContainer.innerHTML = '<div class="text-center py-5 text-muted">No history found</div>';
+    //         return;
+    //     }
+
+    //     historyContainer.innerHTML = myOrders.map(o => {
+    //         const diffInMinutes = Math.floor((new Date() - new Date(o.time)) / 60000);
+    //         const canCancel = diffInMinutes < 5 && o.status === 'Pending';
+            
+    //         return `
+    //             <div class="card mb-3 p-3 shadow-sm border-0" style="border-radius:15px;">
+    //                 <div class="d-flex justify-content-between align-items-center">
+    //                     <div>
+    //                         <h6 class="fw-bold mb-0">Order #${o.id}</h6>
+    //                         <small class="text-muted">${o.time}</small>
+    //                     </div>
+    //                     <span class="badge ${o.status === 'Completed' ? 'bg-success' : 'bg-warning text-dark'} rounded-pill">${o.status}</span>
+    //                 </div>
+    //                 <div class="mt-3 d-flex justify-content-between align-items-center">
+    //                     <span class="fw-bold text-success">$${parseFloat(o.total_revenue || 0).toFixed(2)}</span>
+    //                     ${canCancel ? `<button class="btn btn-sm btn-outline-danger rounded-pill" onclick="cancelOrder(${o.id})">Cancel</button>` : ''}
+    //                 </div>
+    //             </div>
+    //         `;
+    //     }).reverse().join('');
+    // }
+
+async function loadCustomerHistory() {
+    const res = await fetch(`/api/admin/orders/live`);
+    const orders = await res.json();
+    const historyContainer = document.getElementById('historyList');
+    
+    const myOrders = orders.filter(o => o.table_id == tableId && o.status !== 'Completed');
+
+    if (myOrders.length === 0) {
+        historyContainer.innerHTML = '<div class="text-center py-5 text-muted">No history found</div>';
+        return;
+    }
+
+    historyContainer.innerHTML = myOrders.map(o => {
+        // FORCE the time to be interpreted as UTC by adding 'Z' if it's missing
+        const serverTimeStr = o.time.endsWith('Z') ? o.time : o.time + 'Z';
+        const orderTime = new Date(serverTimeStr); 
+        const now = new Date();
+        
+        // Calculate difference in minutes
+        const diffInMinutes = (now - orderTime) / 60000;
+
+        // DEBUG: Open your browser console (F12) to see these numbers
+        console.log(`Order #${o.id} - Mins Ago: ${diffInMinutes.toFixed(2)}`);
+
+        // Logic: Show cancel if Pending AND less than 5 minutes old
+        const canCancel = diffInMinutes >= 0 && diffInMinutes < 5 && o.status === 'Pending';
+        
+        const displayTime = orderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        return `
+            <div class="card mb-3 p-3 shadow-sm border-0" style="border-radius:15px;">
+                <div class="d-flex justify-content-between">
+                    <h6 class="fw-bold">Order #${o.id}</h6>
+                    <span class="badge ${o.status === 'Completed' ? 'bg-success' : 'bg-warning text-dark'}">${o.status}</span>
+                </div>
+                <div class="small text-muted mb-2">${displayTime}</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-success fs-5">$${parseFloat(o.total_revenue || 0).toFixed(2)}</span>
+                    ${canCancel ? 
+                        `<button class="btn btn-sm btn-danger rounded-pill px-3" onclick="cancelOrder(${o.id})">Cancel</button>` 
+                        : `<small class="text-muted">Window Closed</small>`
+                    }
+                </div>
+            </div>
+        `;
+    }).reverse().join('');
+}
+
+    async function cancelOrder(orderId) {
+        if (!confirm("Cancel this order?")) return;
+        const res = await fetch(`/api/orders/cancel/${orderId}`, { method: 'POST' });
+        const result = await res.json();
+        alert(result.message);
+        if (result.success) loadCustomerHistory();
+    }
+
+    function filterMenu(tag, element) {
+        document.querySelectorAll('.filter-badge').forEach(b => b.classList.remove('active-filter'));
+        element.classList.add('active-filter');
+        renderProducts(tag === 'all' ? allProducts : allProducts.filter(p => p.tags.toLowerCase().includes(tag)));
+    }
+
+    init();
+</script>
+</body>
+</html>

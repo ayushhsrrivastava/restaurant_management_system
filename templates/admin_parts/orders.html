@@ -1,0 +1,30 @@
+<div id="orders" class="admin-section">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Live Orders</h2>
+            <p class="text-muted small">Manage active kitchen tickets and walk-ins</p>
+        </div>
+        <button class="btn btn-primary px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#manualOrderModal">
+            <i class="bi bi-plus-lg me-2"></i>New Manual Order
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Time</th>
+                        <th>Type/Table</th>
+                        <th>Amount</th>
+                        <th>Status</th> 
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="live-orders-table">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>

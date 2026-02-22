@@ -1,0 +1,80 @@
+<div class="modal fade" id="manualOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Create Manual Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Select Product</label>
+                    <select id="manual-p-select" class="form-select"></select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" id="manual-qty" class="form-control" value="1" min="1">
+                </div>
+                <button class="btn btn-outline-primary w-100 mb-4" onclick="addToManualList()">
+                    <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                </button>
+
+                <h6>Cart Summary</h6>
+                <ul id="manual-items-preview" class="list-group list-group-flush mb-3"></ul>
+                
+                <div class="d-flex justify-content-between fw-bold border-top pt-3">
+                    <span>Total Amount</span>
+                    <span id="manual-total" class="text-success">$0.00</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn btn-success w-100 py-2" onclick="submitManualOrder()">Finalize & Create Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="p_name" class="form-control mb-3" placeholder="Product Name">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="small text-muted">Selling Price</label>
+                        <input type="number" id="p_price" class="form-control" placeholder="0.00">
+                    </div>
+                    <div class="col-6">
+                        <label class="small text-muted">Cost Price</label>
+                        <input type="number" id="p_cost" class="form-control" placeholder="0.00">
+                    </div>
+                </div>
+                <input type="text" id="p_tags" class="form-control mb-3" placeholder="Tags (e.g., Spicy, Best Seller)">
+                <button class="btn btn-primary w-100 py-2" onclick="saveProduct()">Save Product</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Create New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="new_username" class="form-control mb-3" placeholder="Username">
+                <input type="password" id="new_password" class="form-control mb-3" placeholder="Password">
+                <select id="new_role" class="form-select mb-3">
+                    <option value="staff">Staff (Kitchen/Waiters)</option>
+                    <option value="admin">Administrator</option>
+                    <option value="customer">Customer</option> </select>
+                <button class="btn btn-primary w-100 py-2" onclick="createNewUser()">Save User</button>
+            </div>
+        </div>
+    </div>
+</div>
