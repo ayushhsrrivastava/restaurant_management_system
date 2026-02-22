@@ -116,13 +116,6 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ---
 
-**Developed with ❤️ by Your Name/Company**
-
-```
-
-### Tips for your GitHub Repository:
-1. **Screenshots:** Take a screenshot of your Admin Dashboard and Customer Menu and put them in a folder named `screenshots/`, then link them in the README.
-2. **Tags:** Use tags like `#Flask`, `#Python`, `#SQLAlchemy`, `#RestaurantManagement`, and `#WebDevelopment` when you create the repository settings.
-3. **Requirements.txt:** Don't forget to run `pip freeze > requirements.txt` so others can install your dependencies easily.
+**Developed with ❤️ by Ayushh Srrivastava**
 
 ```
